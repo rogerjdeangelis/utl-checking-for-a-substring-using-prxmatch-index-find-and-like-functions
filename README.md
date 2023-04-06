@@ -7,6 +7,12 @@ Find and flag records that have any non missing value occurring after 'PB' or 'M
      Solutions
         1. SAS sql
         2. WPS sql
+        3. SAS datastep (thanks to Nat Wooding)
+        4. WPS datastep (thanks to Nat Wooding note input and output to sas work library)
+
+
+    FYI (Not sure why this does not work )
+      catAll in ( '%PB@%' , '%MB@%' )
 
 
     github
@@ -16,6 +22,43 @@ Find and flag records that have any non missing value occurring after 'PB' or 'M
     Stackoverflow
     https://tinyurl.com/5n6z5vs7
     https://stackoverflow.com/questions/75769662/how-to-find-and-flag-if-there-are-values-after-a-certain-value-horizontally
+
+    /*                     _
+     ___  ___   __ _ _ __ | |__   _____  __   ___  _ __
+    / __|/ _ \ / _` | `_ \| `_ \ / _ \ \/ /  / _ \| `_ \
+    \__ \ (_) | (_| | |_) | |_) | (_) >  <  | (_) | | | |
+    |___/\___/ \__,_| .__/|_.__/ \___/_/\_\  \___/|_| |_|
+                    |_|
+    */
+
+    /*---- WPS included products? ---*/
+
+    ---ACTIANMATRIX  ---IMPALA               ---SAND
+    ---BATCH         ---INFORMIX             ---SDK
+    ---CLI           ---KOGNITIO             ---SNOWFLAKE
+    ---COMMUNICATE   ---LINK                 ---SQLITE
+    ---CORE          ---MARIADB              ---SQLSERVER
+    ---DATAPROFILER  ---MATRIX               ---STATISTICS
+    ---DB2           ---ML                   ---SYBASE
+    ---DBFILES       ---MLTOOLS              ---SYBASEIQ
+    ---GRAPHING      ---MYSQL                ---TERADATA
+    ---GREENPLUM     ---NETEZZA              ---TIMESERIES
+    ---HADOOP        ---ODBC                 ---VERTICA
+    ---HANA          ---OLEDB                ---WORKBENCH
+    ---IMPALA        ---OPERATIONALRESEARCH  ---WORKFLOW
+    ---INFORMIX      ---ORACLE
+    ---KOGNITIO      ---POSTGRESQL
+    ---LINK          ---PYTHON
+    ---MARIADB       ---QUALITYCONTROL
+    ---MATRIX        ---R
+
+    /*                     _                        __  __
+     ___  ___   __ _ _ __ | |__   _____  __   ___  / _|/ _|
+    / __|/ _ \ / _` | `_ \| `_ \ / _ \ \/ /  / _ \| |_| |_
+    \__ \ (_) | (_| | |_) | |_) | (_) >  <  | (_) |  _|  _|
+    |___/\___/ \__,_| .__/|_.__/ \___/_/\_\  \___/|_| |_|
+                    |_|
+    */
 
     /*                   _
     (_)_ __  _ __  _   _| |_
@@ -189,8 +232,84 @@ Find and flag records that have any non missing value occurring after 'PB' or 'M
     run;quit;
     ");
 
+    /*                   _       _            _
+     ___  __ _ ___    __| | __ _| |_ __ _ ___| |_ ___ _ __
+    / __|/ _` / __|  / _` |/ _` | __/ _` / __| __/ _ \ `_ \
+    \__ \ (_| \__ \ | (_| | (_| | || (_| \__ \ ||  __/ |_) |
+    |___/\__,_|___/  \__,_|\__,_|\__\__,_|___/\__\___| .__/
+                                                     |_|
+    */
+
+
+    Data Want;
+    set have;
+    Array Check P:;
+    Do I =  Dim(Check) to 1 by -1;
+         If Check(i) in ('PB', 'MB') then return;
+         if Check(i) gt '' then Do;
+                Flag = 'Found';
+              return;
+         end;
+    end;
+    drop i;
+    run;
+
+    /**************************************************************************************************************************/
+    /*                                                                                                                        */
+    /* Up to 40 obs from last table WORK.WANT total obs=5 06APR2023:08:29:53                                                  */
+    /* Obs     P1    P2    P3    P4    P5    P6    P7    P8    P9    P10    FLAG                                              */
+    /*                                                                                                                        */
+    /*  1      PM    MM    JM    MM    PM    PB                PM           Found                                             */
+    /*  2      PM    MM    JM    MM    PM    PB    JM                       Found                                             */
+    /*  3      PM    MM    JM    MM    PM    MB    PM    MM                 Found                                             */
+    /*  4      PM    MM    JM    MM    PM    PM    MM    MB                                                                   */
+    /*  5      PM    MM    JM    MM    PM    PM    MM    PB                                                                   */
+    /*                                                                                                                        */
+    /**************************************************************************************************************************/
+
+    /*                        _       _            _
+    __      ___ __  ___    __| | __ _| |_ __ _ ___| |_ ___ _ __
+    \ \ /\ / / `_ \/ __|  / _` |/ _` | __/ _` / __| __/ _ \ `_ \
+     \ V  V /| |_) \__ \ | (_| | (_| | || (_| \__ \ ||  __/ |_) |
+      \_/\_/ | .__/|___/  \__,_|\__,_|\__\__,_|___/\__\___| .__/
+             |_|                                          |_|
+    */
+
+    /*--- input and output to sas work library ----*/
+    /*--- easy way to take advantage of WPS products ----*/
+    %let work=%sysfunc(pathname(work));
+
+    %utl_submit_wps64("
+
+    PROC SETiNIT;
+    run;quit;
+
+    libname wrk '&work';
+
+    Data wrk.Want_wps;
+
+    set wrk.have;
+    Array Check P:;
+    Do I =  Dim(Check) to 1 by -1;
+         If Check(i) in ('PB', 'MB') then return;
+         if Check(i) gt '' then Do;
+                Flag = 'Found';
+              return;
+         end;
+    end;
+    drop i;
+    run;
+
+    ");
+
+    proc print data=want_wps;
+    run;quit;
+
+
     /*              _
       ___ _ __   __| |
      / _ \ `_ \ / _` |
     |  __/ | | | (_| |
      \___|_| |_|\__,_|
+
+    */
